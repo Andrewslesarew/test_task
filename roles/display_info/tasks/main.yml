@@ -1,0 +1,20 @@
+- name: Gather CPU information using lscpu
+  shell:
+    cmd: lscpu
+  register: lscpu_output
+  changed_when: false
+  check_mode: no
+
+- name: Parse Hyper-Threading (or SMT) status from lscpu output
+  set_fact:
+    hyperthreading_enabled: "{{ lscpu_output.stdout | regex_search('^Thread\\(s\\) per core:\\s+([0-9]+)', '\\1') | int > 0 }}"
+
+- name: Display list of CPUs
+  debug:
+    msg: "List of CPUs: {{ lscpu_output.stdout }}"
+
+- name: Display Hyper-Threading (or SMT) status
+  debug:
+    msg: >
+      Hyper-Threading (or SMT) is {{
+      'enabled' if hyperthreading_enabled else 'disabled' }} on this system.

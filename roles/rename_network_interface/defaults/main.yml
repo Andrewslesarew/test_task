@@ -1,0 +1,2 @@
+old_interface_name: "enX0"   # The current name of the interface
+new_interface_name: "net0"  # The desired new name for the interface

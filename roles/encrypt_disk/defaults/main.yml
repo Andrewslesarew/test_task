@@ -1,0 +1,1 @@
+encryption_options: "--cipher aes-xts-plain64 --key-size 512"

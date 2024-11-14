@@ -1,0 +1,7 @@
+- name: Encrypt specified partitions
+  include_tasks: encrypt_partition.yml
+  loop: "{{ partitions_to_encrypt }}"
+  loop_control:
+    loop_var: partition_info
+  tags:
+    - encrypt_only

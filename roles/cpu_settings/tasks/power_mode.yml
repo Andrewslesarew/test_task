@@ -1,0 +1,28 @@
+- name: Install cpupower utility
+  ansible.builtin.package:
+    name: "linux-tools-aws"
+    state: present
+
+- name: Set CPU governor to {{ cpu_governor }} mode
+  shell:
+    cmd: "cpupower frequency-set -g {{ cpu_governor }}"
+  changed_when: false
+  register: cpugovernor_set
+
+- name: Create a systemd service to set CPU governor on boot
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/cpu-governor.service
+    content: |
+      [Unit]
+      Description=Set CPU governor to {{ cpu_governor }}
+      After=network.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/cpupower frequency-set -g {{ cpu_governor }}
+      RemainAfterExit=true
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Enable and start CPU governor service
+  when: cpugovernor_set.rc == 0

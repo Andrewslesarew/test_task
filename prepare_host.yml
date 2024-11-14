@@ -1,0 +1,18 @@
+- name: Prepare server for operation
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - private/vault.yml
+
+  roles:
+    - role: encrypt_disk
+      tags: [ encrypt ]
+      ignore_errors: true
+    - role: cpu_settings
+      tags: [ cpu ]
+      ignore_errors: true
+    - role: rename_network_interface
+      tags: [ network ]
+      ignore_errors: true
+    - role: display_info

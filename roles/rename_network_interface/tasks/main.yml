@@ -1,0 +1,21 @@
+- name: Check if current interface exists
+  ansible.builtin.command:
+    cmd: "ip link show {{ old_interface_name }}"
+  register: interface_check
+  failed_when: interface_check.rc != 0
+  changed_when: false
+
+- name: Get MAC address of the current interface
+  ansible.builtin.command:
+    cmd: "cat /sys/class/net/{{ old_interface_name }}/address"
+  register: interface_mac
+  changed_when: false
+  when: interface_check.rc == 0
+
+- name: Rename network interface using udev rules
+  ansible.builtin.template:
+    mode: "0600"
+    src: "10-rename-interface.rules.j2"
+    dest: "/etc/udev/rules.d/10-rename-interface.rules"
+  notify: Reload udev rules
+  when: interface_check.rc == 0

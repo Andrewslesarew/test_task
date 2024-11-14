@@ -1,0 +1,5 @@
+- name: Disable CPU C-states
+  ansible.builtin.command: "echo 0 > /sys/module/intel_idle/parameters/max_cstate"
+
+- name: Set CPU to specified mode
+  include_tasks: power_mode.yml
