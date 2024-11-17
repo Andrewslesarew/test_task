@@ -1,1 +1,3 @@
-encryption_options: "--cipher aes-xts-plain64 --key-size 512"
+encryption_cipher: "aes-xts-plain64"
+encryption_key_size:  512
+encryption_type: "luks2"

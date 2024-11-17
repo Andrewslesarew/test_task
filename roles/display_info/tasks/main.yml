@@ -1,20 +1,12 @@
-- name: Gather CPU information using lscpu
-  shell:
-    cmd: lscpu
-  register: lscpu_output
-  changed_when: false
-  check_mode: no
+- name: Show CPU information
+  ansible.builtin.debug:
+    msg: "CPU Info: {{ ansible_facts['processor'] }}"
 
-- name: Parse Hyper-Threading (or SMT) status from lscpu output
-  set_fact:
-    hyperthreading_enabled: "{{ lscpu_output.stdout | regex_search('^Thread\\(s\\) per core:\\s+([0-9]+)', '\\1') | int > 0 }}"
+- name: Show number of CPUs
+  ansible.builtin.debug:
+    msg: "Number of CPUs: {{ ansible_facts['processor_cores'] }}"
 
-- name: Display list of CPUs
-  debug:
-    msg: "List of CPUs: {{ lscpu_output.stdout }}"
-
-- name: Display Hyper-Threading (or SMT) status
-  debug:
-    msg: >
-      Hyper-Threading (or SMT) is {{
-      'enabled' if hyperthreading_enabled else 'disabled' }} on this system.
+- name: Inform if Hyper-Threading is not enabled
+  ansible.builtin.debug:
+    msg: "Hyper-Threading is not enabled."
+  when: ansible_facts['processor_threads_per_core'] == 1
