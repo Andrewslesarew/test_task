@@ -10,6 +10,7 @@ The role performs the encryption non-interactively by using a predefined passphr
 ## Requirements
 
 - LUKS and cryptsetup must be available on the target system.
+- installed community.crypto ansible collection
 
 ## Role Variables
 

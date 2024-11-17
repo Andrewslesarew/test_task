@@ -16,3 +16,4 @@
       tags: [ network ]
       ignore_errors: true
     - role: display_info
+      tags: [ cpu_info ]

@@ -1,45 +1,24 @@
-- name: Check if partition is already encrypted with LUKS
-  shell:
-    cmd: "cryptsetup isLuks {{ partition_info.partition }}"
-  register: luks_check
-  changed_when: false
-  ignore_errors: true
-
-- name: Encrypt the partition with LUKS
-  shell:
-    cmd: "echo '{{ encryption_passphrase }}' | cryptsetup -q luksFormat {{ encryption_options }} {{ partition_info.partition }}"
-  when: luks_check.rc != 0
-
-- name: Attempt to open encrypted partition
-  shell:
-    cmd: "echo '{{ encryption_passphrase }}' | cryptsetup luksOpen {{ partition_info.partition }} {{ partition_info.mapper_name }}"
-  register: open_partition
-  ignore_errors: true
-
-- name: Check if cryptsetup open was successful
-  debug:
-    msg: "cryptsetup open failed: {{ open_partition.stderr }}"
-  when: open_partition.failed
-
-- name: Verify that the mapped device exists after opening
-  shell:
-    cmd: "ls /dev/mapper/{{ partition_info.mapper_name }}"
-  register: mapper_device_check
-  retries: 5
-  delay: 2
-  until: mapper_device_check.rc == 0
-  changed_when: false
-  failed_when: mapper_device_check.rc != 0
+- name: Create and open LUKS container in {{ partition_info.partition }}
+  community.crypto.luks_device:
+    device: "{{ partition_info.partition }}"
+    state: "opened"
+    name: "{{ partition_info.mapper_name }}"
+    cipher: "{{ encryption_cipher }}"
+    keysize: "{{ encryption_key_size }}"
+    hash: "sha256"
+    type: "{{ encryption_type }}"
+  register: luks_exist
 
 - name: Create filesystem on encrypted partition
-  shell:
-    cmd: "mkfs.ext4 /dev/mapper/{{ partition_info.mapper_name }}"
-  ignore_errors: true
+  ansible.builtin.filesystem:
+    fstype: ext4
+    dev: "/dev/mapper/{{ partition_info.mapper_name }}"
 
-- name: Ensure mount point exists
+- name: Create a mount point directory
   ansible.builtin.file:
     path: "{{ partition_info.mount_point }}"
     state: directory
+    mode: "0755"
 
 - name: Mount the encrypted partition
   ansible.builtin.mount:
