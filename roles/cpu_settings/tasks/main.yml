@@ -1,6 +1,5 @@
 - name: Disable CPU C-states
-  shell:
-    cmd: "echo 0 > /sys/module/intel_idle/parameters/max_cstate"
+  include_tasks: disable_cpu_cstates.yml
 
 - name: Set CPU to specified mode
   include_tasks: power_mode.yml
