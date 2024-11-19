@@ -10,6 +10,25 @@
     remote_src: yes
     backup: yes
 
+- name: Read current GRUB configuration
+  ansible.builtin.shell: grep "^GRUB_CMDLINE_LINUX=" /etc/default/grub | cut -d'=' -f2- | tr -d '"'
+  register: grub_current
+  changed_when: false
+  become: true
+
+- name: Ensure GRUB_CMDLINE_LINUX contains required kernel parameters
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX='
+    line: 'GRUB_CMDLINE_LINUX="{{ updated_grub_cmdline | join(" ") }}"'
+  vars:
+    current_grub_cmdline: "{{ grub_current.stdout | default('quiet splash') }}"
+    required_params:
+      - intel_idle.max_cstate=0
+      - processor.max_cstate=0
+    updated_grub_cmdline: "{{ current_grub_cmdline.split(' ') | union(required_params) }}"
+  become: true
+
 - name: Append CPU C-state settings to GRUB_CMDLINE_LINUX_DEFAULT
   ansible.builtin.lineinfile:
     path: /etc/default/grub
