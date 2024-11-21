@@ -3,5 +3,3 @@
   loop: "{{ partitions_to_encrypt }}"
   loop_control:
     loop_var: partition_info
-  tags:
-    - encrypt_only

@@ -1,21 +1,6 @@
-- name: Check if the network interface exists
-  set_fact:
-    interface_exists: "{{ old_interface_name in ansible_facts['interfaces'] }}"
-
-- name: Fail if the interface does not exist
-  ansible.builtin.fail:
-    msg: "Network interface '{{ old_interface_name }}' does not exist."
-  when: not interface_exists
-
-- name: Get MAC address of the current interface
-  set_fact:
-    interface_mac: "{{ ansible_facts[old_interface_name].macaddress }}"
-  when: interface_exists
-
-- name: Rename network interface using udev rules
-  ansible.builtin.template:
-    mode: "0600"
-    src: "10-rename-interface.rules.j2"
-    dest: "/etc/udev/rules.d/10-rename-interface.rules"
-  notify: Reload udev rules
-  when: interface_exists
+- name: Replace all enx0 to net0
+  replace:
+    path: "/etc/netplan/50-cloud-init.yaml"
+    regexp: "{{ old_interface_name }}"
+    replace: "{{ new_interface_name }}"
+  notify: Reload netplan

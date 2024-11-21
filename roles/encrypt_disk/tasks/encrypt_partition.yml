@@ -1,43 +1,47 @@
+- name: Get device size using lsblk
+  shell:
+    cmd: fdisk -l {{ partition_info.partition }} | grep "Disk {{ partition_info.partition }}" | awk '{print $5}'
+  register: device_size
+  changed_when: false
+
+- debug:
+    msg: "{{ device_size }}"
+- name: Check that part big enough
+  set_fact:
+    enough_space: "{{ encryption_type == 'luks2' and device_size.stdout | int > 16777216 }}"
+
+- name: Fail if no enough space
+  fail:
+    msg: "Partition {{ partition_info.partition }} has no enough space."
+  when: not enough_space
+
 - name: Create and open LUKS container in {{ partition_info.partition }}
   community.crypto.luks_device:
     device: "{{ partition_info.partition }}"
     state: "opened"
     name: "{{ partition_info.mapper_name }}"
-    cipher: "{{ encryption_cipher }}"
-    keysize: "{{ encryption_key_size }}"
-    hash: "sha256"
-    type: "{{ encryption_type }}"
-  register: luks_exist
+    passphrase: "{{ encryption_passphrase }}"
+  when: enough_space
+  register: luks_open
 
 - name: Create filesystem on encrypted partition
   ansible.builtin.filesystem:
     fstype: ext4
     dev: "/dev/mapper/{{ partition_info.mapper_name }}"
+  when: enough_space and luks_open is succeeded
 
 - name: Create a mount point directory
   ansible.builtin.file:
     path: "{{ partition_info.mount_point }}"
     state: directory
     mode: "0755"
+  when: enough_space and luks_open is succeeded
 
 - name: Mount the encrypted partition
   ansible.builtin.mount:
     path: "{{ partition_info.mount_point }}"
     src: "/dev/mapper/{{ partition_info.mapper_name }}"
     fstype: ext4
-    opts: defaults
-    state: mounted
-
-- name: Configure /etc/crypttab for partition encryption
-  ansible.builtin.lineinfile:
-    path: /etc/crypttab
-    line: "{{ partition_info.mapper_name }} {{ partition_info.partition }} none luks"
-    create: yes
-
-- name: Configure /etc/fstab for partition mount
-  ansible.builtin.lineinfile:
-    regexp: "^/dev/mapper/{{ partition_info.mapper_name }}"
-    path: /etc/fstab
-    line: "/dev/mapper/{{ partition_info.mapper_name }} {{ partition_info.mount_point }} ext4 defaults 0 2"
-    create: yes
-    insertafter: EOF
+    opts: noauto
+    state: ephemeral
+  when: enough_space and luks_open is succeeded

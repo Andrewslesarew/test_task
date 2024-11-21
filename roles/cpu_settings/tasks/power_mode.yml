@@ -1,13 +1,30 @@
+- name: Check available CPU governors
+  command: cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_available_governors
+  register: available_governors
+  changed_when: false
+  failed_when: false
+
+- name: Check if current policy is in the CPU governor result
+  set_fact:
+    cpu_governor_check: "{{ cpu_governor in available_governors.stdout }}"
+
+- name: Fail if desired policy is not in the CPU's available governors
+  fail:
+    msg: "{{ cpu_governor }} policy is not available."
+  when: not cpu_governor_check
+
 - name: Install cpupower utility
   ansible.builtin.package:
     name: "linux-tools-aws"
     state: present
+  when: cpu_governor_check
 
 - name: Set CPU governor to {{ cpu_governor }} mode
   shell:
     cmd: "cpupower frequency-set -g {{ cpu_governor }}"
   changed_when: false
   register: cpugovernor_set
+  when: cpu_governor_check
 
 - name: Create a systemd service to set CPU governor on boot
   ansible.builtin.copy:
@@ -25,4 +42,4 @@
       [Install]
       WantedBy=multi-user.target
   notify: Enable and start CPU governor service
-  when: cpugovernor_set.rc == 0
+  when: cpu_governor_check
